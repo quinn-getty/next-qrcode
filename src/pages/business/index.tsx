@@ -1,7 +1,9 @@
 import { Card, CardContent, Box, Typography, Button } from '@mui/material'
 import { makeStyles, withStyles } from '@material-ui/styles'
 import theme from 'themes/theme'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import jsQR  from "jsqr"
+import { useRouter } from 'next/router'
 
 
 // const S = withStyles(Button)(theme=>({
@@ -44,62 +46,83 @@ const useStyle = makeStyles(()=>({
     margin: "10%",
     borderRadius: "15px",
     [theme.breakpoints.up('sm')]:{
-      width: '100px',
+      width: '150px',
       marginLeft:'10px',
       padding: theme.spacing(2)
     }
+  },
+  canvas:{
+    [theme.breakpoints.up('sm')]:{
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+    }
+
   }
 }))
-export default function Business (){
-  const classes = useStyle()
-  const video = useRef<any>(null)
-  const canvas = useRef(null)
-  const checkedVideo = async () =>{
-    alert(' This browser does not support code scanning. Please use other devices to scan codes')
 
-    console.log(video.current)
-    return;
-    if(!navigator?.mediaDevices?.getUserMedia){
-      return 
-    }
-   const req = await navigator.mediaDevices.getUserMedia({ video: true })
-   .then(stream=>{
-    // if(window.URL.createObjectURL){
-      // console.log(window.URL.createObjectURL(stream))
-    // }
-    // console.log(stream)
-    // if (video.current.src.srcObject) {
-    //   video.current.src.srcObject = stream;
-    // }else if (window.URL.createObjectURL) {
-    //   console.log('createObjectURL', window.URL.createObjectURL(stream as any))
-    //   video.current.src = window.URL.createObjectURL(stream as any);
-    // } else if (window.webkitURL) {
-    //   console.log('webkitURL',  window.webkitURL.createObjectURL(stream as any))
-    //   video.current.src = window.webkitURL.createObjectURL(stream as any);
-    // } else {
-    //   video.current.src = stream;
-    // }
-    video.current.src = window.URL.createObjectURL(stream as any)
-    video.current.playsInline = true;
-    // video.current.play().then(res=>{
-    //   console.log(res)
-    // })
-    // video.current.
-    //  = stream
-   }, err=>{
-    console.log(err)
-   })
-   .catch(e=>{
-    console.log(e)
-   })
-    console.log(req)
+export default function Business (){
+  const router = useRouter()
+  const classes = useStyle()
+  const [timeId, setTimeId] = useState(0)
+  const [stream, setStream] = useState<any>()
+  const video = useRef<any>(null)
+  const canvas = useRef<any>(null)
+
+  const stopScan = ()=>{
+    console.log(timeId, stream)
+    clearInterval(timeId)
+    setTimeId(0)
+    stream.getTracks().forEach(function(track:any) {
+      track.stop();
+    });
   }
+
+  const checkedVideo = async () =>{
+    // alert(' This browser does not support code scanning. Please use other devices to scan codes')
+    if(!navigator?.mediaDevices?.getUserMedia){ return }
+    const constraints = {
+      video: {
+        width: { min: 400,  ideal: 1080, max: 400,  },
+        height: {  min: 400,  ideal: 1080, max: 400, },
+      },
+    };
+    const videoStream = await navigator.mediaDevices.getUserMedia(constraints).catch(e=>{
+      console.log(e)
+    })
+    setStream(videoStream)
+    video.current.srcObject = videoStream
+    video.current.play().then(()=>{
+      const id = setInterval(()=>renderCanvas(),25)
+      setTimeId(id as unknown as number)
+    })
+  }
+
+  const renderCanvas = ()=>{
+    try {
+      canvas.current.width = 400;
+      canvas.current.height =400;
+      const context = canvas.current.getContext("2d")
+      context.drawImage(video.current, 0, 0);
+      const imageData = context.getImageData(0,0,400,400)
+      const {data} =  jsQR(imageData.data, 400,400) ||{}
+      if(data){
+        alert(data)
+        location.replace(location.href)
+        console.log(timeId)
+        stopScan()
+      }
+    } catch (error) {
+      stopScan()
+    }
+  }
+
   return<Card className={classes.card}>
-      <Box className={classes.box}>
-    <div>
-      <video ref={video} controls ></video>
+      <Box className={classes.box} display="flex" flexWrap="wrap">
+    <Box className={classes.canvas}>
+      <video ref={video} controls style={{display: "none"}} ></video>
       <canvas ref={canvas} />
-    </div>
+    </Box>
         <div >
         <Typography className={classes.text} variant="h2" component="div">
           HELLO WORLD
@@ -107,7 +130,11 @@ export default function Business (){
         <Typography  className={classes.text} component="div">
           <p>Now you are entering a business terminal, and you need to identify the user's QR code</p>
         </Typography>
-        <Button autoFocus className={classes.button} onClick={()=>checkedVideo()} variant="contained">Scan Code</Button>
+        {
+          !timeId ?
+          <Button autoFocus className={classes.button} onClick={()=>checkedVideo()} variant="contained">Scan Code</Button>
+          :<Button autoFocus className={classes.button} onClick={()=>stopScan()} variant="contained">Stop Scan</Button>
+        }
         </div>
     </Box>
     {/* This browser does not support code scanning. Please use other devices to scan codes */}

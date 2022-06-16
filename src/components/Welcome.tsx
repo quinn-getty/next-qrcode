@@ -4,6 +4,10 @@
 import { Card, CardContent, Box, Typography, Button } from '@mui/material'
 import { makeStyles } from '@material-ui/styles'
 import theme from 'themes/theme'
+import Link from 'components/Link'
+import NextLink from 'next/link';
+
+
 
 const useStyle = makeStyles(()=>{
   return({
@@ -11,6 +15,7 @@ const useStyle = makeStyles(()=>{
     width: "98%",
     [theme.breakpoints.up('sm')]:{
       padding: theme.spacing(2),
+      marginLeft: "70%",
       width: "auto",
     }
   },
@@ -30,6 +35,9 @@ const useStyle = makeStyles(()=>{
     [theme.breakpoints.up('sm')]:{
       width: '48%',
     }
+  },
+  link:{
+    color: "#FFF",
   }
 })
 }
@@ -50,8 +58,10 @@ export default function Welcome (){
           Please select a role
         </Typography>
         <Box className={classes.buttonBox}>
-          <Button autoFocus className={classes.button} variant="contained">I'm user</Button>
-          <Button autoFocus className={classes.button} variant="outlined">I'm business</Button>
+          <Button autoFocus className={classes.button} variant="contained">
+            <Link className={classes.link} href='/user'> I'm user </Link></Button>
+          <Button autoFocus className={classes.button} variant="outlined">
+            <NextLink href='/business'>I'm business</NextLink></Button>
         </Box>
       </CardContent>
       {/* <CardActions>
